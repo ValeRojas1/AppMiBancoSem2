@@ -10,4 +10,5 @@ sealed class Screen(val route: String) {
     object Pagos         : Screen("pagos")
     object Prestamos     : Screen("prestamos")
     object Ahorro        : Screen("ahorro")
+    object SolicitudCredito : Screen("solicitud_credito")  // ← AGREGAR
 }

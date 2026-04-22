@@ -14,23 +14,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.appmibancosem2.data.model.DemoData
+import com.example.appmibancosem2.navigation.Screen   // ← IMPORT FALTANTE
 import com.example.appmibancosem2.ui.theme.*
 
-// TAREA: Dashboard con mínimo 2 TarjetaCuenta + 4 botones de acceso rápido
-// + botón de logout que limpia el back stack
 @Composable
 fun DashboardScreen(
-    onNavTransacciones: (String) -> Unit,
-    onNavPagos: () -> Unit,
-    onNavPrestamos: () -> Unit,
-    onNavAhorro: () -> Unit,
-    onLogout: () -> Unit  // NUEVO: logout para la Tarea
+    onNavigateTo : (Screen) -> Unit,   // ← UN SOLO callback unificado
+    onLogout     : () -> Unit
 ) {
     Scaffold(
-        topBar = {
-            // TopBar personalizado con botón de logout
-            DashboardTopBar(onLogout = onLogout)
-        }
+        topBar = { DashboardTopBar(onLogout = onLogout) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -39,7 +32,6 @@ fun DashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Saludo
             Text(
                 text       = "¡Hola, ${DemoData.cuenta.titular}! 👋",
                 fontSize   = 20.sp,
@@ -47,38 +39,57 @@ fun DashboardScreen(
                 color      = NavyDark
             )
 
-            // TAREA: Mínimo 2 TarjetaCuenta en el Dashboard
             Text("Mis cuentas", fontWeight = FontWeight.SemiBold, color = NavyDark, fontSize = 16.sp)
-            // Tarjeta 1 — Cuenta de Ahorros
             TarjetaCuenta(cuenta = DemoData.cuenta)
-            // Tarjeta 2 — Cuenta Corriente
             TarjetaCuenta(cuenta = DemoData.cuentaCorriente)
 
-            // TAREA: 4 botones de acceso rápido con BotonAccesoRapido
-            Text("Accesos rápidos", fontWeight = FontWeight.SemiBold, color = NavyDark, fontSize = 16.sp)
+            // Primera fila: 4 botones originales
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // En DashboardScreen, cambiar la llamada a onNavTransacciones:
                 BotonAccesoRapido(
                     icono    = Icons.Default.Receipt,
                     etiqueta = "Movimientos",
-                    onClick  = { onNavTransacciones(DemoData.cuenta.numero) }  // pasa número de cuenta
+                    onClick  = { onNavigateTo(Screen.Transacciones) }
                 )
-
-                BotonAccesoRapido(icono = Icons.Default.Payment,         etiqueta = "Pagos",       onClick = onNavPagos)
-                BotonAccesoRapido(icono = Icons.Default.AccountBalance,  etiqueta = "Préstamos",   onClick = onNavPrestamos)
-                BotonAccesoRapido(icono = Icons.Default.Savings,         etiqueta = "Ahorro",      onClick = onNavAhorro)
+                BotonAccesoRapido(
+                    icono    = Icons.Default.Payment,
+                    etiqueta = "Pagar",
+                    onClick  = { onNavigateTo(Screen.Pagos) }
+                )
+                BotonAccesoRapido(
+                    icono    = Icons.Default.AccountBalance,
+                    etiqueta = "Préstamos",
+                    onClick  = { onNavigateTo(Screen.Prestamos) }
+                )
+                BotonAccesoRapido(
+                    icono    = Icons.Default.Savings,
+                    etiqueta = "Ahorro",
+                    onClick  = { onNavigateTo(Screen.Ahorro) }
+                )
             }
 
-            // Últimos movimientos
+            Spacer(Modifier.height(4.dp))
+
+            // Segunda fila: botón Crédito centrado
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                BotonAccesoRapido(
+                    icono    = Icons.Default.RequestPage,
+                    etiqueta = "Crédito",
+                    onClick  = { onNavigateTo(Screen.SolicitudCredito) }
+                )
+            }
+
             Text("Últimos movimientos", fontWeight = FontWeight.SemiBold, color = NavyDark, fontSize = 16.sp)
             Card(elevation = CardDefaults.cardElevation(2.dp)) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     DemoData.transacciones.take(3).forEach { FilaTransaccion(it) }
                     TextButton(
-                        onClick = { onNavTransacciones(DemoData.cuenta.numero) }, 
+                        onClick  = { onNavigateTo(Screen.Transacciones) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Ver todos los movimientos →", color = NavyPrimary, fontWeight = FontWeight.Medium)
@@ -89,16 +100,12 @@ fun DashboardScreen(
     }
 }
 
-// TopBar personalizado para Dashboard con botón de logout
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardTopBar(onLogout: () -> Unit) {
     TopAppBar(
-        title = {
-            Text("MiBanco", color = Color.White, fontWeight = FontWeight.Bold)
-        },
+        title   = { Text("MiBanco", color = Color.White, fontWeight = FontWeight.Bold) },
         actions = {
-            // Botón de logout en la barra superior derecha
             IconButton(onClick = onLogout) {
                 Icon(
                     imageVector        = Icons.AutoMirrored.Filled.ExitToApp,

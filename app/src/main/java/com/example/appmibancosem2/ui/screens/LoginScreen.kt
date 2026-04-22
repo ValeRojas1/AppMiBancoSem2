@@ -1,10 +1,13 @@
 package com.example.appmibancosem2.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -13,149 +16,169 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.appmibancosem2.ui.theme.*
 
+// ── Constantes SharedPreferences ─────────────────────────────────────────────
+private const val PREFS_LOGIN  = "login_prefs"
+private const val KEY_RECORDAR = "recordar_sesion"
+private const val KEY_USUARIO  = "ultimo_usuario"
+
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
-    // remember { mutableStateOf("") } = variable observable que persiste
-    // entre recomposiciones. "by" = delegación, acceso directo sin .value
-    var email    by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var error    by remember { mutableStateOf("") }
+    val contexto = LocalContext.current
+
+    var email       by remember { mutableStateOf("") }
+    var password    by remember { mutableStateOf("") }
+    var error       by remember { mutableStateOf("") }
+    var recordar    by remember { mutableStateOf(false) }
     var verPassword by remember { mutableStateOf(false) }
 
-    // Degradado vertical de fondo: efecto visual premium con una línea
+    // Cargar borrador de sesión al abrir la pantalla (una sola vez)
+    LaunchedEffect(Unit) {
+        val prefs = contexto.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_RECORDAR, false)) {
+            recordar = true
+            email    = prefs.getString(KEY_USUARIO, "") ?: ""
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(listOf(NavyDark, NavyPrimary))
-            ),
+            .background(Brush.verticalGradient(listOf(NavyDark, NavyPrimary))),
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier  = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 32.dp),
             shape     = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-            colors    = CardDefaults.cardColors(containerColor = Color.White)
+            elevation = CardDefaults.cardElevation(12.dp)
         ) {
             Column(
                 modifier            = Modifier.padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Logo / Título
                 Text(
-                    text       = "Mi",
-                    fontSize   = 40.sp,
-                    fontWeight = FontWeight.Black,
-                    color      = GoldAccent
-                )
-                Text(
-                    text       = "BANCO",
+                    text       = "Mi Banco",
                     fontSize   = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    color      = NavyPrimary,
-                    letterSpacing = 6.sp
+                    fontWeight = FontWeight.ExtraBold,
+                    color      = NavyPrimary
                 )
-                Spacer(Modifier.height(8.dp))
                 Text(
-                    text     = "Banca Personal",
-                    fontSize = 13.sp,
-                    color    = GrayMedium
+                    text     = "Portal Financiero",
+                    fontSize = 14.sp,
+                    color    = GoldAccent
                 )
-                Spacer(Modifier.height(28.dp))
 
-                // Campo Email
+                Spacer(Modifier.height(8.dp))
+
+                // ── Campo Email ───────────────────────────────────────────
                 OutlinedTextField(
                     value         = email,
-                    onValueChange = { email = it },
+                    onValueChange = { email = it; error = "" },
                     label         = { Text("Correo electrónico") },
-                    singleLine    = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier      = Modifier.fillMaxWidth(),
-                    shape         = RoundedCornerShape(12.dp)
+                    leadingIcon   = { Icon(Icons.Default.Email, null, tint = NavyPrimary) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction    = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    modifier   = Modifier.fillMaxWidth()
                 )
-                Spacer(Modifier.height(14.dp))
 
-                // Campo Contraseña con toggle de visibilidad
+                // ── Campo Contraseña con ojo ──────────────────────────────
                 OutlinedTextField(
-                    value         = password,
-                    onValueChange = { password = it },
-                    label         = { Text("Contraseña") },
-                    singleLine    = true,
+                    value                = password,
+                    onValueChange        = { password = it; error = "" },
+                    label                = { Text("Contraseña") },
+                    leadingIcon          = { Icon(Icons.Default.Lock, null, tint = NavyPrimary) },
                     visualTransformation = if (verPassword)
-                        VisualTransformation.None
-                    else
-                        PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon  = {
+                        VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
                         IconButton(onClick = { verPassword = !verPassword }) {
                             Icon(
                                 imageVector = if (verPassword)
-                                    Icons.Default.Visibility
-                                else
-                                    Icons.Default.VisibilityOff,
-                                contentDescription = "Mostrar/ocultar contraseña",
-                                tint = GrayMedium
+                                    Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (verPassword) "Ocultar" else "Mostrar",
+                                tint = NavyPrimary
                             )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape    = RoundedCornerShape(12.dp)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction    = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    modifier   = Modifier.fillMaxWidth()
                 )
 
-                // Mensaje de error (vacío si no hay error)
+                // ── Checkbox "Recordar sesión" ────────────────────────────
+                Row(
+                    modifier          = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked         = recordar,
+                        onCheckedChange = { marcado ->
+                            recordar = marcado
+                            // Si desmarca → limpia SharedPreferences de inmediato
+                            if (!marcado) {
+                                contexto.getSharedPreferences(PREFS_LOGIN, Context.MODE_PRIVATE)
+                                    .edit().clear().apply()
+                            }
+                        },
+                        colors = CheckboxDefaults.colors(checkedColor = NavyPrimary)
+                    )
+                    Text("Recordar sesión", fontSize = 14.sp, color = NavyDark)
+                }
+
+                // ── Mensaje de error ──────────────────────────────────────
                 if (error.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
                     Text(
                         text     = error,
-                        color    = RedNegative,
+                        color    = MaterialTheme.colorScheme.error,
                         fontSize = 13.sp
                     )
                 }
-                Spacer(Modifier.height(20.dp))
 
-                // Botón Ingresar
+                // ── Botón Ingresar ────────────────────────────────────────
                 Button(
                     onClick = {
-                        when {
-                            email.isBlank()    -> error = "Ingresa tu correo"
-                            password.isBlank() -> error = "Ingresa tu contraseña"
-                            password.length < 4 -> error = "Contraseña muy corta"
-                            else               -> {
-                                error = ""
-                                onLoginSuccess() // Navega al Dashboard
+                        if (email.isBlank() || password.isBlank()) {
+                            error = "Completa todos los campos"
+                        } else {
+                            val prefs = contexto.getSharedPreferences(
+                                PREFS_LOGIN, Context.MODE_PRIVATE
+                            )
+                            if (recordar) {
+                                prefs.edit()
+                                    .putBoolean(KEY_RECORDAR, true)
+                                    .putString(KEY_USUARIO, email)
+                                    .apply()
+                            } else {
+                                prefs.edit().clear().apply()
                             }
+                            onLoginSuccess()
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape  = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
+                    shape  = RoundedCornerShape(10.dp)
                 ) {
-                    Text(
-                        text       = "Ingresar",
-                        fontSize   = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = Color.White
-                    )
+                    Text("Ingresar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
-                Spacer(Modifier.height(12.dp))
+
                 TextButton(onClick = { }) {
-                    Text(
-                        text  = "¿Olvidaste tu contraseña?",
-                        color = NavyPrimary,
-                        fontSize = 13.sp
-                    )
+                    Text("¿Olvidaste tu contraseña?", color = GoldAccent, fontSize = 13.sp)
                 }
             }
         }
