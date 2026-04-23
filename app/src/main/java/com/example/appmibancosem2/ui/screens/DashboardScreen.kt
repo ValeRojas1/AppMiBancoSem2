@@ -14,12 +14,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.appmibancosem2.data.model.DemoData
-import com.example.appmibancosem2.navigation.Screen   // ← IMPORT FALTANTE
+import com.example.appmibancosem2.navigation.Screen
 import com.example.appmibancosem2.ui.theme.*
 
 @Composable
 fun DashboardScreen(
-    onNavigateTo : (Screen) -> Unit,   // ← UN SOLO callback unificado
+    onNavigateTo : (Screen) -> Unit,
     onLogout     : () -> Unit
 ) {
     Scaffold(
@@ -72,15 +72,20 @@ fun DashboardScreen(
 
             Spacer(Modifier.height(4.dp))
 
-            // Segunda fila: botón Crédito centrado
+            // Segunda fila: Crédito e Historial en paralelo
             Row(
                 modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 BotonAccesoRapido(
                     icono    = Icons.Default.RequestPage,
                     etiqueta = "Crédito",
                     onClick  = { onNavigateTo(Screen.SolicitudCredito) }
+                )
+                BotonAccesoRapido(
+                    icono    = Icons.Default.History,
+                    etiqueta = "Historial",
+                    onClick  = { onNavigateTo(Screen.HistorialSolicitudes) }
                 )
             }
 

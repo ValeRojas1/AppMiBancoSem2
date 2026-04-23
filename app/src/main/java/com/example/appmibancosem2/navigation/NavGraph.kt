@@ -59,7 +59,14 @@ fun MiBancoNavGraph(navController: NavHostController) {
         }
 
         composable(Screen.SolicitudCredito.route) {
-            SolicitudCreditoScreen(onBack = { navController.popBackStack() })
+            SolicitudCreditoScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToHistorial = { navController.navigate(Screen.HistorialSolicitudes.route) }
+            )
+        }
+
+        composable(Screen.HistorialSolicitudes.route) {
+            HistorialSolicitudesScreen(onBack = { navController.popBackStack() })
         }
     }
 }

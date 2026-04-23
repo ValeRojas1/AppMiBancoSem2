@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.appmibancosem2.data.local.SolicitudDatabase
+import com.example.appmibancosem2.data.model.SolicitudCredito
 import com.example.appmibancosem2.ui.theme.*
 
 private const val PREFS_SOLICITUD = "borrador_solicitud"
@@ -28,7 +30,10 @@ private const val KEY_TIPO        = "sol_tipo"
 private const val KEY_DNI         = "sol_dni"
 
 @Composable
-fun SolicitudCreditoScreen(onBack: () -> Unit) {
+fun SolicitudCreditoScreen(
+    onBack: () -> Unit,
+    onNavigateToHistorial: () -> Unit
+) {
     val contexto = LocalContext.current
 
     var monto by remember { mutableStateOf("") }
@@ -37,10 +42,7 @@ fun SolicitudCreditoScreen(onBack: () -> Unit) {
     var dni   by remember { mutableStateOf("") }
 
     var mostrarDialogoEnvio      by remember { mutableStateOf(false) }
-    var mostrarDialogoHistorial  by remember { mutableStateOf(false) }
     var mostrarDialogoBorrador   by remember { mutableStateOf(false) }
-    var mostrarDialogoLimpiarHis by remember { mutableStateOf(false) }
-    var textoHistorial           by remember { mutableStateOf("") }
     var mensajeError             by remember { mutableStateOf("") }
 
     // Cargar borrador al abrir la pantalla (solo una vez)
@@ -141,10 +143,7 @@ fun SolicitudCreditoScreen(onBack: () -> Unit) {
             }
 
             OutlinedButton(
-                onClick = {
-                    textoHistorial = LogManager.obtenerHistorial(contexto)
-                    mostrarDialogoHistorial = true
-                },
+                onClick = onNavigateToHistorial,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape    = RoundedCornerShape(10.dp)
             ) {
@@ -167,7 +166,7 @@ fun SolicitudCreditoScreen(onBack: () -> Unit) {
             title = { Text("Solicitud enviada", fontWeight = FontWeight.Bold) },
             text  = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Tu solicitud ha sido registrada.")
+                    Text("Tu solicitud ha sido registrada con estado PENDIENTE.")
                     Spacer(Modifier.height(4.dp))
                     Text("Monto: S/ $monto")
                     Text("Plazo: $plazo meses")
@@ -177,58 +176,29 @@ fun SolicitudCreditoScreen(onBack: () -> Unit) {
             confirmButton = {
                 Button(
                     onClick = {
+                        // 1. Guardar en archivo de texto (LogManager)
                         LogManager.registrar(
                             contexto,
                             "Monto: S/ $monto | Plazo: $plazo meses | Tipo: $tipo | DNI: $dni"
                         )
+                        
+                        // 2. Guardar en Base de Datos Local
+                        val sqlDb = SolicitudDatabase(contexto)
+                        sqlDb.insertar(
+                            SolicitudCredito(
+                                monto      = monto.toDoubleOrNull() ?: 0.0,
+                                plazoMeses = plazo.toIntOrNull()    ?: 0,
+                                tipoCredito = tipo,
+                                dniSolicitante = dni,
+                                estado     = "pendiente"
+                            )
+                        )
+
                         limpiarBorrador()
                         mostrarDialogoEnvio = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
                 ) { Text("Aceptar") }
-            }
-        )
-    }
-
-    // ── Diálogo: historial ────────────────────────────────────────────────
-    if (mostrarDialogoHistorial) {
-        AlertDialog(
-            onDismissRequest = { mostrarDialogoHistorial = false },
-            title  = { Text("Historial de Solicitudes", fontWeight = FontWeight.Bold) },
-            text   = { Text(textoHistorial, fontSize = 12.sp, color = NavyDark) },
-            confirmButton = {
-                TextButton(onClick = { mostrarDialogoHistorial = false }) {
-                    Text("Cerrar", color = NavyPrimary)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    mostrarDialogoHistorial  = false
-                    mostrarDialogoLimpiarHis = true
-                }) { Text("Limpiar historial", color = RedNegative) }
-            }
-        )
-    }
-
-    // ── Diálogo: confirmar limpiar historial ──────────────────────────────
-    if (mostrarDialogoLimpiarHis) {
-        AlertDialog(
-            onDismissRequest = { mostrarDialogoLimpiarHis = false },
-            title = { Text("Limpiar historial", fontWeight = FontWeight.Bold) },
-            text  = { Text("¿Eliminar todo el historial de solicitudes?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        LogManager.limpiarHistorial(contexto)
-                        mostrarDialogoLimpiarHis = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = RedNegative)
-                ) { Text("Sí, eliminar") }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { mostrarDialogoLimpiarHis = false }) {
-                    Text("Cancelar")
-                }
             }
         )
     }
